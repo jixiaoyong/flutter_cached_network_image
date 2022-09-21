@@ -1,8 +1,9 @@
+import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:example/cancelable_cache_manage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
 
 void main() {
   CachedNetworkImage.logLevel = CacheManagerLogLevel.debug;
@@ -20,7 +21,7 @@ void main() {
 }
 
 /// Demonstrates a [StatelessWidget] containing [CachedNetworkImage]
-class BasicContent extends StatelessWidget {
+class BasicContent extends StatefulWidget {
   const BasicContent({Key? key}) : super(key: key);
 
   static ExamplePage createPage() {
@@ -28,112 +29,104 @@ class BasicContent extends StatelessWidget {
   }
 
   @override
+  State<BasicContent> createState() => _BasicContentState();
+}
+
+class _BasicContentState extends State<BasicContent> {
+  var devicePixelRatio = 1.0;
+  Size imageSize = Size.square(300);
+  Size imageSizePx = Size.square(300);
+  var imageUrl =
+      "http://10.30.61.112:8080/annie-spratt-askpr0s66Rg-unsplash.jpg";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    imageSizePx = imageSize * devicePixelRatio;
+    print("imageSizePx:$imageSizePx");
+  }
+
+  @override
   Widget build(BuildContext context) {
+    var timeMs = DateTime.now().millisecondsSinceEpoch;
     return SingleChildScrollView(
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            _blurHashImage(),
-            _sizedContainer(
-              const Image(
-                image: CachedNetworkImageProvider(
-                  'https://via.placeholder.com/350x150',
+            CachedNetworkImage(
+              width: imageSize.width,
+              height: imageSize.height,
+              fit: BoxFit.cover,
+              progressIndicatorBuilder: (context, url, progress) => Center(
+                child: CircularProgressIndicator(
+                  value: progress.progress,
                 ),
               ),
-            ),
-            _sizedContainer(
-              CachedNetworkImage(
-                progressIndicatorBuilder: (context, url, progress) => Center(
-                  child: CircularProgressIndicator(
-                    value: progress.progress,
-                  ),
-                ),
-                imageUrl:
-                    'https://images.unsplash.com/photo-1532264523420-881a47db012d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9',
-              ),
-            ),
-            _sizedContainer(
-              CachedNetworkImage(
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                imageUrl: 'https://via.placeholder.com/200x150',
-              ),
-            ),
-            _sizedContainer(
-              CachedNetworkImage(
-                imageUrl: 'https://via.placeholder.com/300x150',
-                imageBuilder: (context, imageProvider) => Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: imageProvider,
-                      fit: BoxFit.cover,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.red,
-                        BlendMode.colorBurn,
-                      ),
-                    ),
-                  ),
-                ),
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
+              imageUrl: "http://10.30.61.112:8080/monastery-7443192.jpg",
+              cacheManager: CancelableCacheManage.instance(),
+              maxWidthDiskCache: imageSizePx.width.toInt(),
+              maxHeightDiskCache: imageSizePx.height.toInt(),
+              // memCacheHeight: imageSizePx.width.toInt(),
+              // memCacheWidth: imageSizePx.height.toInt(),
             ),
             CachedNetworkImage(
-              imageUrl: 'https://via.placeholder.com/300x300',
-              placeholder: (context, url) => const CircleAvatar(
-                backgroundColor: Colors.amber,
-                radius: 150,
+              width: imageSize.width,
+              height: imageSize.height,
+              fit: BoxFit.cover,
+              progressIndicatorBuilder: (context, url, progress) => Center(
+                child: CircularProgressIndicator(
+                  value: progress.progress,
+                ),
               ),
-              imageBuilder: (context, image) => CircleAvatar(
-                backgroundImage: image,
-                radius: 150,
-              ),
+              imageUrl: "http://10.30.61.112:8080/monastery-7443192.jpg",
+              cacheManager: CancelableCacheManage.instance(),
             ),
-            _sizedContainer(
-              CachedNetworkImage(
-                imageUrl: 'https://notAvalid.uri',
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-            _sizedContainer(
-              CachedNetworkImage(
-                imageUrl: 'not a uri at all',
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
-            ),
-            _sizedContainer(
-              CachedNetworkImage(
-                maxHeightDiskCache: 10,
-                imageUrl: 'https://via.placeholder.com/350x200',
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-                fadeOutDuration: const Duration(seconds: 1),
-                fadeInDuration: const Duration(seconds: 3),
-              ),
-            ),
+            // CachedNetworkImage(
+            //   width: imageSize.width,
+            //   height: imageSize.height,
+            //   progressIndicatorBuilder: (context, url, progress) => Center(
+            //     child: CircularProgressIndicator(
+            //       value: progress.progress,
+            //     ),
+            //   ),
+            //   imageUrl: "http://10.30.61.112:8080/monastery-7443192_1.5mb.jpg",
+            //   cacheManager: CancelableCacheManage.instance(),
+            // ),
+            // CachedNetworkImage(
+            //   width: imageSize.width,
+            //   height: imageSize.height,
+            //   progressIndicatorBuilder: (context, url, progress) => Center(
+            //     child: CircularProgressIndicator(
+            //       value: progress.progress,
+            //     ),
+            //   ),
+            //   imageUrl: "http://10.30.61.112:8080/monastery-7443192_webp.webp",
+            //   cacheManager: CancelableCacheManage.instance(),
+            // ),
+            // CachedNetworkImage(
+            //   width: imageSize.width,
+            //   height: imageSize.height,
+            //   progressIndicatorBuilder: (context, url, progress) => Center(
+            //     child: CircularProgressIndicator(
+            //       value: progress.progress,
+            //     ),
+            //   ),
+            //   imageUrl:
+            //       "http://10.30.61.112:8080/monastery-7443192_webp_1.2mb.webp",
+            //   cacheManager: CancelableCacheManage.instance(),
+            // ),
+            OutlinedButton(
+                onPressed: () {
+                  setState(() {});
+                },
+                child: Text(
+                  "refresh",
+                  style: TextStyle(color: Colors.white, fontSize: 30),
+                )),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _blurHashImage() {
-    return SizedBox(
-      width: double.infinity,
-      child: CachedNetworkImage(
-        placeholder: (context, url) => const AspectRatio(
-          aspectRatio: 1.6,
-          child: BlurHash(hash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj'),
-        ),
-        imageUrl: 'https://blurha.sh/assets/images/img1.jpg',
-        fit: BoxFit.cover,
       ),
     );
   }
@@ -162,12 +155,14 @@ class ListContent extends StatelessWidget {
         child: Column(
           children: <Widget>[
             CachedNetworkImage(
-              imageUrl: 'https://loremflickr.com/320/240/music?lock=$index',
+              imageUrl:
+                  'https://source.unsplash.com/1300x1300/?book,library&i=$index',
               placeholder: (BuildContext context, String url) => Container(
                 width: 320,
                 height: 240,
                 color: Colors.purple,
               ),
+              cacheManager: CancelableCacheManage.instance(),
             ),
           ],
         ),
@@ -188,13 +183,14 @@ class GridContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      itemCount: 250,
+      // itemCount: 250,
       gridDelegate:
           const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
       itemBuilder: (BuildContext context, int index) => CachedNetworkImage(
-        imageUrl: 'https://loremflickr.com/100/100/music?lock=$index',
+        imageUrl: 'https://loremflickr.com/1080/1920/music?lock=$index',
         placeholder: _loader,
         errorWidget: _error,
+        cacheManager: CancelableCacheManage.instance(),
       ),
     );
   }

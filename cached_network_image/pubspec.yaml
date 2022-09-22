@@ -11,8 +11,12 @@ dependencies:
   flutter_cache_manager:
     path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
   octo_image: ^1.0.0
-  cached_network_image_platform_interface: ^1.0.0
-  cached_network_image_web: ^1.0.0
+  #  cached_network_image_platform_interface: ^1.0.0
+  cached_network_image_platform_interface:
+    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
+  #  cached_network_image_web: ^1.0.0
+  cached_network_image_web:
+    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_web
 
 
 dev_dependencies:

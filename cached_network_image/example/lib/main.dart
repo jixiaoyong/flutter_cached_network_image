@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:example/cancelable_cache_manage.dart';
@@ -6,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import 'cached_image_info.dart';
+
 void main() {
-  CachedNetworkImage.logLevel = CacheManagerLogLevel.debug;
+  CachedNetworkImage.logLevel = CacheManagerLogLevel.verbose;
 
   runApp(BaseflowPluginExample(
     pluginName: 'CachedNetworkImage',
@@ -207,8 +212,51 @@ class ListContent extends StatefulWidget {
 }
 
 class _ListContentState extends State<ListContent> with WidgetsBindingObserver {
-  Size imageSize = Size.square(300);
+  Size imageSize = Size.square(100);
   Size imageSizePx = Size.square(300);
+  final Queue<CachedImageInfo> _cacheImageQueue = Queue();
+  CachedImageInfo? currentInfo;
+
+  _checkQueue() async {
+    if (_cacheImageQueue.length < 10 || currentInfo != null) {
+      return;
+    }
+    currentInfo = _cacheImageQueue.removeFirst();
+    var delayMs = 200;
+    if (_cacheImageQueue.length > 50) {
+      delayMs = 10;
+    }
+    await Future.delayed(Duration(milliseconds: delayMs));
+    try {
+      // 因为图片可能还没有加载完毕，所以这里可能还没有图片，所以可能会出错
+      var url = currentInfo?.url;
+      var size = currentInfo?.widgetSize;
+
+      if (url == null || size == null) {
+        return;
+      }
+      var isRemoved =
+          await CachedNetworkImage.evictFromCache(url, onlyCache: true);
+      if (!isRemoved) {
+        var result = await ResizeImage(
+                CachedNetworkImageProvider(
+                  url,
+                  maxWidth: size.width.toInt(),
+                  maxHeight: size.height.toInt(),
+                ),
+                width: size.width.toInt(),
+                height: size.height.toInt())
+            .evict();
+        print("${url} evict result: $result");
+      } else {
+        print("${url} evict result: $isRemoved");
+      }
+    } on Exception catch (e) {
+      // do nothing
+    } finally {
+      currentInfo = null;
+    }
+  }
 
   @override
   void initState() {
@@ -244,8 +292,9 @@ class _ListContentState extends State<ListContent> with WidgetsBindingObserver {
     print("imageSizePx:$imageSizePx");
   }
 
-  // var imageUrl = "http://10.30.61.112:8080/onitround_107312.png";
-  var imageUrl = "http://10.30.61.112:8080/port-7418239.jpg";
+  var imageUrl = "http://10.30.61.112:8080/onitround_107312.png";
+
+  // var imageUrl = "http://10.30.61.112:8080/port-7418239.jpg";
 
   @override
   Widget build(BuildContext context) {
@@ -253,8 +302,16 @@ class _ListContentState extends State<ListContent> with WidgetsBindingObserver {
       itemBuilder: (BuildContext context, int index) {
         var url = "$imageUrl?$index";
         return LifecycleWidget(
-          index: index,
           url: url,
+          imageSize: imageSizePx,
+          onLoad: (info) {
+            _cacheImageQueue.remove(info);
+            _checkQueue();
+          },
+          onDispose: (info) {
+            _cacheImageQueue.add(info);
+            _checkQueue();
+          },
           child: Card(
             child: Column(
               children: <Widget>[
@@ -276,10 +333,10 @@ class _ListContentState extends State<ListContent> with WidgetsBindingObserver {
                         fit: BoxFit.cover,
                         progressIndicatorBuilder: (context, url, progress) =>
                             Center(
-                          child: CircularProgressIndicator(
-                            value: progress.progress,
-                          ),
-                        ),
+                              child: CircularProgressIndicator(
+                                value: progress.progress,
+                              ),
+                            ),
                         imageUrl: url,
                         cacheManager: CancelableCacheManage.instance(),
                         maxWidthDiskCache: imageSizePx.width.toInt(),
@@ -318,7 +375,7 @@ class GridContent extends StatelessWidget {
     return GridView.builder(
       // itemCount: 250,
       gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+      const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
       itemBuilder: (BuildContext context, int index) => CachedNetworkImage(
         imageUrl: 'https://loremflickr.com/1080/1920/music?lock=$index',
         placeholder: _loader,
@@ -340,30 +397,42 @@ class GridContent extends StatelessWidget {
 }
 
 class LifecycleWidget extends StatefulWidget {
-  const LifecycleWidget(
-      {Key? key, required this.child, required this.index, required this.url})
+  LifecycleWidget(
+      {Key? key,
+      required this.child,
+      required this.imageSize,
+      required this.onDispose,
+      required this.onLoad,
+      required this.url})
       : super(key: key);
 
   final Widget child;
-  final int index;
+  final Size imageSize;
   final String url;
+
+  ValueChanged<CachedImageInfo> onLoad;
+  ValueChanged<CachedImageInfo> onDispose;
 
   @override
   State<LifecycleWidget> createState() => _LifecycleWidgetState();
 }
 
 class _LifecycleWidgetState extends State<LifecycleWidget> {
+  late CachedImageInfo cachedImageInfo;
+
   @override
   void initState() {
     super.initState();
     print("$this on init");
+    cachedImageInfo = CachedImageInfo(widget.url, widget.imageSize);
+    widget.onLoad(cachedImageInfo);
   }
 
   @override
   void dispose() {
     super.dispose();
     print("$this dispose");
-    CachedNetworkImage.evictFromCache(widget.url, onlyCache: true);
+    widget.onDispose(cachedImageInfo);
   }
 
   @override

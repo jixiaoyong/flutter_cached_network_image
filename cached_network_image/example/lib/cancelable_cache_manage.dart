@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:collection';
+import 'dart:io' as io;
 import 'dart:ui' as ui;
 
+import 'package:example/resize_task.dart';
 import 'package:file/file.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -80,6 +83,7 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
   }
 
   final Map<String, Stream<FileResponse>> _runningResizes = {};
+  final Queue<ResizeTask> _resizeQueue = Queue();
 
   Future<FileInfo> _resizeImageFile(
     FileInfo originalFile,
@@ -89,9 +93,15 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
   ) async {
     var originalFileName = originalFile.file.path;
     var fileExtension = originalFileName.split('.').last;
-    if (!supportedFileNames.contains(fileExtension)) {
+    if (!supportedFileNames.contains(fileExtension) ||
+        (maxWidth == null && maxHeight == null)) {
       return originalFile;
     }
+
+    var resizeTask = ResizeTask(originalFile.originalUrl, originalFileName,
+        Size(maxWidth?.toDouble() ?? 0, maxHeight?.toDouble() ?? 0));
+    _resizeQueue.add(resizeTask);
+    _checkResizeQueue();
 
     // var image = await _decodeImage(originalFile.file);
     //
@@ -176,6 +186,45 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
         minWidth: width ?? 1920,
         minHeight: height ?? 1080,
         format: CompressFormat.jpeg);
+  }
+
+  Future<void> _checkResizeQueue() async {
+    if (_resizeQueue.isEmpty) {
+      return;
+    }
+    // background
+    await Future.delayed(Duration(milliseconds: 200));
+    var task = _resizeQueue.removeFirst();
+    await _composeImageFile(task);
+  }
+
+  _composeImageFile(ResizeTask task) async {
+    cacheLogger.log("compress image:${task.originPath} to ${task.widgetSize}",
+        CacheManagerLogLevel.verbose);
+    var size = task.widgetSize;
+
+    var file = await FlutterImageCompress.compressAndGetFile(
+      task.originPath,
+      task.outputPath,
+      minHeight: size.height.toInt(),
+      minWidth: size.width.toInt(),
+    );
+    if (file != null) {
+      var fileLength = await file.length();
+      await updateCacheFilePath(
+        task.url,
+        task.outputName,
+        fileLength,
+        key: task.key,
+      );
+      try {
+        var originPath = io.File(task.originPath);
+        originPath.delete();
+      } on Exception catch (e) {
+        // ignore exception
+      }
+      file = null;
+    }
   }
 }
 

@@ -28,9 +28,11 @@ class CancelableHttpFileService extends FileService {
     var key = requestKey ?? _genKey(url, headers);
     var request = _cachedHttpRequest.remove(key);
     Future.delayed(Duration(seconds: 0), () {
-      print("try request abort initiative:${key}  request:$request");
+      cacheLogger.log("try request abort initiative:${key}  request:$request",
+          CacheManagerLogLevel.debug);
       request?.abort(Exception("request abort initiative"));
-      print("request abort initiative:${key}  request:$request");
+      cacheLogger.log("request abort initiative:${key}  request:$request",
+          CacheManagerLogLevel.debug);
     });
     var timeInMs = DateTime.now().millisecondsSinceEpoch;
     _abortHttpRequest[key] = timeInMs;

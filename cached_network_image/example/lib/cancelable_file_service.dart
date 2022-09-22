@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart';
 import 'package:http/src/io_streamed_response.dart';
@@ -17,27 +18,41 @@ class CancelableHttpFileService extends FileService {
   final HttpClient _httpClient;
   final Map<String, HttpClientRequest?> _cachedHttpRequest = {};
 
+  // key:timeInMs
+  final Map<String, int> _abortHttpRequest = {};
+
   CancelableHttpFileService({HttpClient? httpClient})
       : _httpClient = httpClient ?? HttpClient();
 
   abortRequest(String url, {Map<String, String>? headers, String? requestKey}) {
     var key = requestKey ?? _genKey(url, headers);
     var request = _cachedHttpRequest.remove(key);
-    request?.abort(Exception("request abort initiative"));
+    Future.delayed(Duration(seconds: 0), () {
+      print("try request abort initiative:${key}  request:$request");
+      request?.abort(Exception("request abort initiative"));
+      print("request abort initiative:${key}  request:$request");
+    });
+    var timeInMs = DateTime.now().millisecondsSinceEpoch;
+    _abortHttpRequest[key] = timeInMs;
   }
 
   @override
   Future<FileServiceResponse> get(String url,
       {Map<String, String>? headers, String? requestKey}) async {
-    final req = await _httpClient.openUrl('GET', Uri.parse(url));
+    var key = requestKey ?? _genKey(url, headers);
+    HttpClientRequest req;
+    if (_cachedHttpRequest.containsKey(key) &&
+        _cachedHttpRequest[key] != null) {
+      req = _cachedHttpRequest[key]!;
+    } else {
+      req = await _httpClient.openUrl('GET', Uri.parse(url));
+    }
+
     if (headers != null) {
       headers.forEach((key, value) {
         req.headers.set(key, value);
       });
     }
-
-    var key = requestKey ?? _genKey(url, headers);
-    _cachedHttpRequest[key] = req;
 
     IOStreamedResponse? httpResponse;
     try {
@@ -68,6 +83,8 @@ class CancelableHttpFileService extends FileService {
       throw ClientException(error.message, error.uri);
     } finally {
       _cachedHttpRequest.remove(key);
+      cacheLogger.log(
+          "_cachedHttpRequest.remove$key", CacheManagerLogLevel.debug);
     }
 
     return HttpGetResponse(httpResponse);

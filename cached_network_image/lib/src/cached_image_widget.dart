@@ -55,9 +55,12 @@ class CachedNetworkImage extends StatelessWidget {
     String? cacheKey,
     BaseCacheManager? cacheManager,
     double scale = 1.0,
+    bool onlyCache = false,
   }) async {
     cacheManager = cacheManager ?? DefaultCacheManager();
-    await cacheManager.removeFile(cacheKey ?? url);
+    if (!onlyCache) {
+      await cacheManager.removeFile(cacheKey ?? url);
+    }
     return CachedNetworkImageProvider(url, scale: scale).evict();
   }
 

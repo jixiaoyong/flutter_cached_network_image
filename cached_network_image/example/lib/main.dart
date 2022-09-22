@@ -4,6 +4,7 @@ import 'package:example/cancelable_cache_manage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
   CachedNetworkImage.logLevel = CacheManagerLogLevel.debug;
@@ -13,9 +14,9 @@ void main() {
     githubURL: 'https://github.com/Baseflow/flutter_cache_manager',
     pubDevURL: 'https://pub.dev/packages/flutter_cache_manager',
     pages: [
-      BasicContent.createPage(),
+      // BasicContent.createPage(),
       ListContent.createPage(),
-      GridContent.createPage(),
+      // GridContent.createPage(),
     ],
   ));
 }
@@ -32,7 +33,8 @@ class BasicContent extends StatefulWidget {
   State<BasicContent> createState() => _BasicContentState();
 }
 
-class _BasicContentState extends State<BasicContent> {
+class _BasicContentState extends State<BasicContent>
+    with WidgetsBindingObserver {
   var devicePixelRatio = 1.0;
   Size imageSize = Size.square(300);
   Size imageSizePx = Size.square(300);
@@ -40,11 +42,33 @@ class _BasicContentState extends State<BasicContent> {
       "http://10.30.61.112:8080/annie-spratt-askpr0s66Rg-unsplash.jpg";
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    WidgetsBinding.instance?.removeObserver(this);
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     imageSizePx = imageSize * devicePixelRatio;
     print("imageSizePx:$imageSizePx");
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    print(
+        "didHaveMemoryPressure:${PaintingBinding.instance!.imageCache?.currentSizeBytes}");
+    PaintingBinding.instance!.imageCache!.clear();
+    print(
+        "after didHaveMemoryPressure:${PaintingBinding.instance!.imageCache?.currentSizeBytes}");
   }
 
   @override
@@ -82,6 +106,36 @@ class _BasicContentState extends State<BasicContent> {
               ),
               imageUrl: "http://10.30.61.112:8080/monastery-7443192.jpg",
               cacheManager: CancelableCacheManage.instance(),
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: 200),
+              child: VisibilityDetector(
+                key: UniqueKey(),
+                onVisibilityChanged: (VisibilityInfo info) {
+                  print("visiblity:${info}");
+                  if (info.visibleBounds == Rect.zero) {
+                    print("try cancel httpRequest");
+                    CancelableCacheManage.instance().tryCancelHttpRequest(
+                        "http://10.30.61.112:8080/monastery-7443192.jpg");
+                  }
+                },
+                child: CachedNetworkImage(
+                  width: imageSize.width,
+                  height: imageSize.height,
+                  fit: BoxFit.cover,
+                  progressIndicatorBuilder: (context, url, progress) => Center(
+                    child: CircularProgressIndicator(
+                      value: progress.progress,
+                    ),
+                  ),
+                  imageUrl: "http://10.30.61.112:8080/monastery-7443192.jpg",
+                  cacheManager: CancelableCacheManage.instance(),
+                  maxWidthDiskCache: imageSizePx.width.toInt(),
+                  maxHeightDiskCache: imageSizePx.height.toInt(),
+                  // memCacheHeight: imageSizePx.width.toInt(),
+                  // memCacheWidth: imageSizePx.height.toInt(),
+                ),
+              ),
             ),
             // CachedNetworkImage(
             //   width: imageSize.width,
@@ -141,7 +195,7 @@ class _BasicContentState extends State<BasicContent> {
 }
 
 /// Demonstrates a [ListView] containing [CachedNetworkImage]
-class ListContent extends StatelessWidget {
+class ListContent extends StatefulWidget {
   const ListContent({Key? key}) : super(key: key);
 
   static ExamplePage createPage() {
@@ -149,25 +203,104 @@ class ListContent extends StatelessWidget {
   }
 
   @override
+  State<ListContent> createState() => _ListContentState();
+}
+
+class _ListContentState extends State<ListContent> with WidgetsBindingObserver {
+  Size imageSize = Size.square(300);
+  Size imageSizePx = Size.square(300);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    WidgetsBinding.instance?.removeObserver(this);
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    print(
+        "didHaveMemoryPressure:${PaintingBinding.instance!.imageCache?.currentSizeBytes}");
+    try {
+      PaintingBinding.instance?.imageCache?.clear();
+    } on Exception catch (e) {
+      print("e.toString():$e.toString()");
+    }
+    print(
+        "after didHaveMemoryPressure:${PaintingBinding.instance!.imageCache?.currentSizeBytes}");
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    var devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    imageSizePx = imageSize * devicePixelRatio;
+    print("imageSizePx:$imageSizePx");
+  }
+
+  // var imageUrl = "http://10.30.61.112:8080/onitround_107312.png";
+  var imageUrl = "http://10.30.61.112:8080/port-7418239.jpg";
+
+  @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemBuilder: (BuildContext context, int index) => Card(
-        child: Column(
-          children: <Widget>[
-            CachedNetworkImage(
-              imageUrl:
-                  'https://source.unsplash.com/1300x1300/?book,library&i=$index',
-              placeholder: (BuildContext context, String url) => Container(
-                width: 320,
-                height: 240,
-                color: Colors.purple,
-              ),
-              cacheManager: CancelableCacheManage.instance(),
+      itemBuilder: (BuildContext context, int index) {
+        var url = "$imageUrl?$index";
+        return LifecycleWidget(
+          index: index,
+          url: url,
+          child: Card(
+            child: Column(
+              children: <Widget>[
+                VisibilityDetector(
+                  key: UniqueKey(),
+                  onVisibilityChanged: (VisibilityInfo info) {
+                    print("$index visiblity:${info}");
+                    if (info.visibleBounds == Rect.zero) {
+                      print("try cancel httpRequest");
+                      CancelableCacheManage.instance()
+                          .tryCancelHttpRequest(url);
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      CachedNetworkImage(
+                        width: imageSize.width,
+                        height: imageSize.height,
+                        fit: BoxFit.cover,
+                        progressIndicatorBuilder: (context, url, progress) =>
+                            Center(
+                          child: CircularProgressIndicator(
+                            value: progress.progress,
+                          ),
+                        ),
+                        imageUrl: url,
+                        cacheManager: CancelableCacheManage.instance(),
+                        maxWidthDiskCache: imageSizePx.width.toInt(),
+                        maxHeightDiskCache: imageSizePx.height.toInt(),
+                        memCacheHeight: imageSizePx.width.toInt(),
+                        memCacheWidth: imageSizePx.height.toInt(),
+                      ),
+                      Text(
+                        "Index:$index",
+                        style: const TextStyle(
+                            fontSize: 30, color: Colors.redAccent),
+                      ),
+                    ],
+                  ),
+                )
+              ],
             ),
-          ],
-        ),
-      ),
-      itemCount: 250,
+          ),
+        );
+      },
+      // itemCount: 250,
     );
   }
 }
@@ -203,5 +336,40 @@ class GridContent extends StatelessWidget {
 
   Widget _error(BuildContext context, String url, dynamic error) {
     return const Center(child: Icon(Icons.error));
+  }
+}
+
+class LifecycleWidget extends StatefulWidget {
+  const LifecycleWidget(
+      {Key? key, required this.child, required this.index, required this.url})
+      : super(key: key);
+
+  final Widget child;
+  final int index;
+  final String url;
+
+  @override
+  State<LifecycleWidget> createState() => _LifecycleWidgetState();
+}
+
+class _LifecycleWidgetState extends State<LifecycleWidget> {
+  @override
+  void initState() {
+    super.initState();
+    print("$this on init");
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    print("$this dispose");
+    CachedNetworkImage.evictFromCache(widget.url, onlyCache: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: widget.child,
+    );
   }
 }

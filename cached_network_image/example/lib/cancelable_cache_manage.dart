@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:file/file.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -22,8 +21,10 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
 
   factory CancelableCacheManage.instance() => _cacheManage;
 
-  CancelableCacheManage._()
-      : super(Config(key, fileService: CancelableHttpFileService()));
+  static final CancelableHttpFileService _fileService =
+      CancelableHttpFileService();
+
+  CancelableCacheManage._() : super(Config(key, fileService: _fileService));
 
   /// Returns a resized image file to fit within maxHeight and maxWidth. It
   /// tries to keep the aspect ratio. It stores the resized image by adding
@@ -92,42 +93,46 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
       return originalFile;
     }
 
-    var image = await _decodeImage(originalFile.file);
+    // var image = await _decodeImage(originalFile.file);
+    //
+    // var shouldResize = maxWidth != null
+    //     ? image.width > maxWidth
+    //     : false || maxHeight != null
+    //         ? image.height > maxHeight
+    //         : false;
+    // if (!shouldResize) return originalFile;
+    // if (maxWidth != null && maxHeight != null) {
+    //   var resizeFactorWidth = image.width / maxWidth;
+    //   var resizeFactorHeight = image.height / maxHeight;
+    //   // var resizeFactor = max(resizeFactorHeight, resizeFactorWidth);
+    //   var resizeFactor = min(resizeFactorHeight, resizeFactorWidth);
+    //
+    //   maxWidth = (image.width / resizeFactor).round();
+    //   maxHeight = (image.height / resizeFactor).round();
+    // }
+    //
+    // var resizedFile = await _composeImage(originalFile.file.path,
+    //     width: maxWidth, height: maxHeight);
+    // //TODO  notice: remove origin file after compose
+    // originalFile.file.delete();
+    //
+    // var maxAge = originalFile.validTill.difference(DateTime.now());
+    //
+    // var file = await putFile(
+    //   originalFile.originalUrl,
+    //   resizedFile,
+    //   key: key,
+    //   maxAge: maxAge,
+    //   fileExtension: fileExtension,
+    // );
 
-    var shouldResize = maxWidth != null
-        ? image.width > maxWidth
-        : false || maxHeight != null
-            ? image.height > maxHeight
-            : false;
-    if (!shouldResize) return originalFile;
-    if (maxWidth != null && maxHeight != null) {
-      var resizeFactorWidth = image.width / maxWidth;
-      var resizeFactorHeight = image.height / maxHeight;
-      // var resizeFactor = max(resizeFactorHeight, resizeFactorWidth);
-      var resizeFactor = min(resizeFactorHeight, resizeFactorWidth);
-
-      maxWidth = (image.width / resizeFactor).round();
-      maxHeight = (image.height / resizeFactor).round();
-    }
-
-    var resizedFile = await _composeImage(originalFile.file,
-        width: maxWidth, height: maxHeight);
-    var maxAge = originalFile.validTill.difference(DateTime.now());
-
-    var file = await putFile(
-      originalFile.originalUrl,
-      resizedFile,
-      key: key,
-      maxAge: maxAge,
-      fileExtension: fileExtension,
-    );
-
-    return FileInfo(
-      file,
-      originalFile.source,
-      originalFile.validTill,
-      originalFile.originalUrl,
-    );
+    return originalFile;
+    // return FileInfo(
+    //   file,
+    //   originalFile.source,
+    //   originalFile.validTill,
+    //   originalFile.originalUrl,
+    // );
   }
 
   Stream<FileResponse> _fetchedResizedFile(
@@ -158,15 +163,20 @@ class CancelableCacheManage extends CacheManager with ImageCacheManager {
       }
     }
   }
-}
 
-_composeImage(File file, {int? width, int? height}) {
-  cacheLogger.log("compress image:${file.path} to w$width,h$height",
-      CacheManagerLogLevel.verbose);
-  return FlutterImageCompress.compressWithFile(file.path,
-      minWidth: width ?? 1920,
-      minHeight: height ?? 1080,
-      format: CompressFormat.jpeg);
+  tryCancelHttpRequest(String url,
+      {Map<String, String>? headers, String? requestKey}) {
+    _fileService.abortRequest(url, headers: headers, requestKey: requestKey);
+  }
+
+  _composeImage(String filePath, {int? width, int? height}) {
+    cacheLogger.log("compress image:${filePath} to w$width,h$height",
+        CacheManagerLogLevel.verbose);
+    return FlutterImageCompress.compressWithFile(filePath,
+        minWidth: width ?? 1920,
+        minHeight: height ?? 1080,
+        format: CompressFormat.jpeg);
+  }
 }
 
 Future<ui.Image> _decodeImage(File file,

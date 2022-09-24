@@ -9,15 +9,23 @@ dependencies:
     sdk: flutter
   #  flutter_cache_manager: ^3.3.0
   flutter_cache_manager:
-    path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
+    git:
+      url: git://github.com/jixiaoyong/flutter_cache_manager.git
+      path: flutter_cache_manager
+  #    path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
   octo_image: ^1.0.0
   #  cached_network_image_platform_interface: ^1.0.0
   cached_network_image_platform_interface:
-    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
+    git:
+      url: git://github.com/jixiaoyong/flutter_cached_network_image.git
+      path: cached_network_image_platform_interface
+  #    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
   #  cached_network_image_web: ^1.0.0
   cached_network_image_web:
-    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_web
-
+    git:
+      url: git://github.com/jixiaoyong/flutter_cached_network_image.git
+      path: cached_network_image_web
+#    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_web
 
 dev_dependencies:
   flutter_test:
@@ -28,7 +36,10 @@ dev_dependencies:
 
 dependency_overrides:
   flutter_cache_manager:
-    path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
+    git:
+      url: git://github.com/jixiaoyong/flutter_cache_manager.git
+      path: flutter_cache_manager
+#    path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
 
 environment:
   flutter: ">=1.24.0-10.2.pre"

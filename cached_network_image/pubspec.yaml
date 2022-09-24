@@ -19,12 +19,14 @@ dependencies:
     git:
       url: git://github.com/jixiaoyong/flutter_cached_network_image.git
       path: cached_network_image_platform_interface
+      ref: dev_flutter2
   #    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
   #  cached_network_image_web: ^1.0.0
   cached_network_image_web:
     git:
       url: git://github.com/jixiaoyong/flutter_cached_network_image.git
       path: cached_network_image_web
+      ref: dev_flutter2
 #    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_web
 
 dev_dependencies:

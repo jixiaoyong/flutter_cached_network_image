@@ -13,9 +13,16 @@ dependencies:
   #  flutter_cache_manager: ^3.0.0
   #  cached_network_image_platform_interface: ^1.0.0
   flutter_cache_manager:
-    path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
+    git:
+      url: git://github.com/jixiaoyong/flutter_cache_manager.git
+      path: flutter_cache_manager
+    # path: H:/workspace/dev/flutter_cache_manager/flutter_cache_manager
   cached_network_image_platform_interface:
-    path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
+    git:
+      url: git://github.com/jixiaoyong/flutter_cached_network_image.git
+      path: cached_network_image_platform_interface
+      ref: dev_flutter2
+    # path: H:/workspace/dev/flutter_cached_network_image/cached_network_image_platform_interface
 
 dev_dependencies:
   flutter_test:
@@ -28,7 +35,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
-
 # To add assets to your package, add an assets section, like this:
 # assets:
 #   - images/a_dot_burr.jpeg
